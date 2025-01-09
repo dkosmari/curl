@@ -827,6 +827,7 @@ stateful
 statvfs
 stderr
 stdin
+stdint
 stdout
 Steinar
 Stenberg
