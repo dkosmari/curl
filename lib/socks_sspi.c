@@ -400,9 +400,9 @@ CURLcode Curl_SOCKS5_gssapi_negotiate(struct Curl_cfilter *cf,
       result = CURLE_COULDNT_CONNECT;
       goto error;
     }
-    sspi_send_token.cbBuffer = sspi_w_token[0].cbBuffer
-      + sspi_w_token[1].cbBuffer
-      + sspi_w_token[2].cbBuffer;
+    sspi_send_token.cbBuffer = sspi_w_token[0].cbBuffer +
+      sspi_w_token[1].cbBuffer +
+      sspi_w_token[2].cbBuffer;
     sspi_send_token.pvBuffer = malloc(sspi_send_token.cbBuffer);
     if(!sspi_send_token.pvBuffer) {
       result = CURLE_OUT_OF_MEMORY;
@@ -413,9 +413,9 @@ CURLcode Curl_SOCKS5_gssapi_negotiate(struct Curl_cfilter *cf,
            sspi_w_token[0].cbBuffer);
     memcpy((PUCHAR) sspi_send_token.pvBuffer +(int)sspi_w_token[0].cbBuffer,
            sspi_w_token[1].pvBuffer, sspi_w_token[1].cbBuffer);
-    memcpy((PUCHAR) sspi_send_token.pvBuffer
-           + sspi_w_token[0].cbBuffer
-           + sspi_w_token[1].cbBuffer,
+    memcpy((PUCHAR) sspi_send_token.pvBuffer +
+           sspi_w_token[0].cbBuffer +
+           sspi_w_token[1].cbBuffer,
            sspi_w_token[2].pvBuffer, sspi_w_token[2].cbBuffer);
 
     Curl_pSecFn->FreeContextBuffer(sspi_w_token[0].pvBuffer);
