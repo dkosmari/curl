@@ -393,8 +393,7 @@ CURLcode Curl_SOCKS5_gssapi_negotiate(struct Curl_cfilter *cf,
     }
     status = Curl_pSecFn->EncryptMessage(&sspi_context,
                                          KERB_WRAP_NO_ENCRYPT,
-                                         &wrap_desc,
-                                         0);
+                                         &wrap_desc, 0);
     if(check_sspi_err(data, status, "EncryptMessage")) {
       failf(data, "Failed to query security context attributes.");
       result = CURLE_COULDNT_CONNECT;
@@ -512,10 +511,8 @@ CURLcode Curl_SOCKS5_gssapi_negotiate(struct Curl_cfilter *cf,
     sspi_w_token[1].cbBuffer = 0;
     sspi_w_token[1].pvBuffer = NULL;
 
-    status = Curl_pSecFn->DecryptMessage(&sspi_context,
-                                      &wrap_desc,
-                                      0,
-                                      &qop);
+    status = Curl_pSecFn->DecryptMessage(&sspi_context, &wrap_desc,
+                                         0, &qop);
 
     if(check_sspi_err(data, status, "DecryptMessage")) {
       failf(data, "Failed to query security context attributes.");
