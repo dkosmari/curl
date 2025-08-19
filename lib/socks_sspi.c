@@ -90,7 +90,6 @@ CURLcode Curl_SOCKS5_gssapi_negotiate(struct Curl_cfilter *cf,
   unsigned char socksreq[4]; /* room for GSS-API exchange header only */
   const char *service = data->set.str[STRING_PROXY_SERVICE_NAME] ?
     data->set.str[STRING_PROXY_SERVICE_NAME]  : "rcmd";
-  const size_t service_length = strlen(service);
 
   /*   GSS-API request looks like
    * +----+------+-----+----------------+
@@ -437,7 +436,7 @@ CURLcode Curl_SOCKS5_gssapi_negotiate(struct Curl_cfilter *cf,
                            &written);
   if(code || (written != 4)) {
     failf(data, "Failed to send SSPI encryption request.");
-    error = CURLE_COULDNT_CONNECT;
+    result = CURLE_COULDNT_CONNECT;
     goto error;
   }
 
