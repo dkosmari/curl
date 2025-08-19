@@ -90,7 +90,6 @@ CURLcode Curl_SOCKS5_gssapi_negotiate(struct Curl_cfilter *cf,
   unsigned char socksreq[4]; /* room for GSS-API exchange header only */
   const char *service = data->set.str[STRING_PROXY_SERVICE_NAME] ?
     data->set.str[STRING_PROXY_SERVICE_NAME]  : "rcmd";
-  char token1_pvBuffer;
 
   /*   GSS-API request looks like
    * +----+------+-----+----------------+
@@ -378,7 +377,12 @@ CURLcode Curl_SOCKS5_gssapi_negotiate(struct Curl_cfilter *cf,
     }
 
     sspi_w_token[1].cbBuffer = 1;
-    sspi_w_token[1].pvBuffer = &token1_pvBuffer; /* no malloc */
+    sspi_w_token[1].pvBuffer = malloc(1);
+    if(!sspi_w_token[1].pvBuffer) {
+      result = CURLE_OUT_OF_MEMORY;
+      goto error;
+    }
+
     memcpy(sspi_w_token[1].pvBuffer, &gss_enc, 1);
     sspi_w_token[2].BufferType = SECBUFFER_PADDING;
     sspi_w_token[2].cbBuffer = sspi_sizes.cbBlockSize;
@@ -396,9 +400,9 @@ CURLcode Curl_SOCKS5_gssapi_negotiate(struct Curl_cfilter *cf,
       result = CURLE_COULDNT_CONNECT;
       goto error;
     }
-    sspi_send_token.cbBuffer = sspi_w_token[0].cbBuffer +
-      sspi_w_token[1].cbBuffer +
-      sspi_w_token[2].cbBuffer;
+    sspi_send_token.cbBuffer = sspi_w_token[0].cbBuffer
+      + sspi_w_token[1].cbBuffer
+      + sspi_w_token[2].cbBuffer;
     sspi_send_token.pvBuffer = malloc(sspi_send_token.cbBuffer);
     if(!sspi_send_token.pvBuffer) {
       result = CURLE_OUT_OF_MEMORY;
@@ -409,14 +413,15 @@ CURLcode Curl_SOCKS5_gssapi_negotiate(struct Curl_cfilter *cf,
            sspi_w_token[0].cbBuffer);
     memcpy((PUCHAR) sspi_send_token.pvBuffer +(int)sspi_w_token[0].cbBuffer,
            sspi_w_token[1].pvBuffer, sspi_w_token[1].cbBuffer);
-    memcpy((PUCHAR) sspi_send_token.pvBuffer + sspi_w_token[0].cbBuffer +
-           sspi_w_token[1].cbBuffer,
+    memcpy((PUCHAR) sspi_send_token.pvBuffer
+           + sspi_w_token[0].cbBuffer
+           + sspi_w_token[1].cbBuffer,
            sspi_w_token[2].pvBuffer, sspi_w_token[2].cbBuffer);
 
     Curl_pSecFn->FreeContextBuffer(sspi_w_token[0].pvBuffer);
     sspi_w_token[0].pvBuffer = NULL;
     sspi_w_token[0].cbBuffer = 0;
-    /* token[1].pvBuffer is not malloced */
+    Curl_pSecFn->FreeContextBuffer(sspi_w_token[1].pvBuffer);
     sspi_w_token[1].pvBuffer = NULL;
     sspi_w_token[1].cbBuffer = 0;
     Curl_pSecFn->FreeContextBuffer(sspi_w_token[2].pvBuffer);
@@ -505,9 +510,12 @@ CURLcode Curl_SOCKS5_gssapi_negotiate(struct Curl_cfilter *cf,
     sspi_w_token[0].BufferType = SECBUFFER_STREAM;
     sspi_w_token[1].BufferType = SECBUFFER_DATA;
     sspi_w_token[1].cbBuffer = 0;
+    sspi_w_token[1].pvBuffer = NULL;
 
-    status = Curl_pSecFn->DecryptMessage(&sspi_context, &wrap_desc,
-                                         0, &qop);
+    status = Curl_pSecFn->DecryptMessage(&sspi_context,
+                                      &wrap_desc,
+                                      0,
+                                      &qop);
 
     if(check_sspi_err(data, status, "DecryptMessage")) {
       failf(data, "Failed to query security context attributes.");
@@ -524,6 +532,7 @@ CURLcode Curl_SOCKS5_gssapi_negotiate(struct Curl_cfilter *cf,
 
     memcpy(socksreq, sspi_w_token[1].pvBuffer, sspi_w_token[1].cbBuffer);
     Curl_pSecFn->FreeContextBuffer(sspi_w_token[0].pvBuffer);
+    Curl_pSecFn->FreeContextBuffer(sspi_w_token[1].pvBuffer);
   }
   else {
     if(sspi_w_token[0].cbBuffer != 1) {
@@ -564,6 +573,8 @@ error:
     Curl_pSecFn->FreeContextBuffer(names.sUserName);
   if(sspi_w_token[0].pvBuffer)
     Curl_pSecFn->FreeContextBuffer(sspi_w_token[0].pvBuffer);
+  if(sspi_w_token[1].pvBuffer)
+    Curl_pSecFn->FreeContextBuffer(sspi_w_token[1].pvBuffer);
   if(sspi_w_token[2].pvBuffer)
     Curl_pSecFn->FreeContextBuffer(sspi_w_token[2].pvBuffer);
   return result;
