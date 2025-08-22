@@ -33,8 +33,6 @@
 #elif defined(USE_THREADS_WIN32)
 #  include <process.h>
 #elif defined(USE_THREADS_WIIU)
-#  include <stdio.h>
-#  include <stdlib.h>
 #  include <coreinit/thread.h>
 #  include <coreinit/mutex.h>
 #endif
