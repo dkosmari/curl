@@ -32,6 +32,8 @@ XC_OVR_ZZ50
 XC_OVR_ZZ60
 CURL_OVERRIDE_AUTOCONF
 
+DEVKITPRO_WUT_OPT_INIT
+
 dnl configure script copyright
 AC_COPYRIGHT([Copyright (C) Daniel Stenberg, <daniel@haxx.se>
 This configure script may be copied, distributed and modified under the
@@ -501,6 +503,14 @@ if test "$curl_cv_native_windows" = "yes"; then
     *-DWINSTORECOMPAT*) curl_cv_winuwp='yes';;
   esac
 fi
+
+AS_VAR_IF([enable_wiiu], [yes],
+  [
+    AC_MSG_NOTICE([building Wii U binary])
+    DEVKITPRO_PPC_SETUP
+    DEVKITPRO_WUT_SETUP
+  ])
+# AM_CONDITIONAL([ENABLE_WIIU], [test x$enable_wiiu = xyes])
 
 CURL_SET_COMPILER_BASIC_OPTS
 CURL_SET_COMPILER_DEBUG_OPTS
@@ -4314,8 +4324,15 @@ if test "$want_threaded_resolver" = "yes" && test "$curl_cv_native_windows" = "y
   curl_res_msg="Win32 threaded"
 fi
 
+dnl Wii U threaded resolver check
+if test "$want_threaded_resolver" = "yes" && test "$enable_wiiu" = "yes"; then
+  USE_THREADS_WIIU=1
+  AC_DEFINE([USE_THREADS_WIIU], [1], [if you want Wii U threaded DNS lookup])
+  curl_res_msg="Wii U threaded"
+fi
+
 dnl detect pthreads
-if test "$want_threaded_resolver" = "yes" && test "$USE_THREADS_WIN32" != "1"; then
+if test "$want_threaded_resolver" = "yes" && test "$USE_THREADS_WIN32" != "1" && test "$USE_THREADS_WIIU" != "1"; then
   AC_CHECK_HEADER(pthread.h,
     [ AC_DEFINE(HAVE_PTHREAD_H, 1, [if you have <pthread.h>])
       save_CFLAGS="$CFLAGS"
@@ -4377,7 +4394,7 @@ if test "$want_threaded_resolver" = "yes" && test "$USE_THREADS_WIN32" != "1"; t
 fi
 
 dnl Did we find a threading option?
-if test "$want_threaded_resolver" != "no" -a "x$USE_THREADS_POSIX" != "x1" -a "x$USE_THREADS_WIN32" != "x1"; then
+if test "$want_threaded_resolver" != "no" -a "x$USE_THREADS_POSIX" != "x1" -a "x$USE_THREADS_WIN32" != "x1" -a "x$USE_THREADS_WIIU" != "x1"; then
   AC_MSG_ERROR([Threaded resolver enabled but no thread library found])
 fi
 

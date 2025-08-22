@@ -39,6 +39,7 @@ Release
 TAGS
 aclocal.m4
 aclocal.m4.bak
+aminclude.am
 autom4te.cache
 buildinfo.txt
 ca-bundle.crt
