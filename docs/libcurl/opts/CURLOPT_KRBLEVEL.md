@@ -25,7 +25,7 @@ CURLcode curl_easy_setopt(CURL *handle, CURLOPT_KRBLEVEL, char *level);
 
 # DESCRIPTION
 
-Deprecated option. It serves no purpose anymore.
+Deprecated option since 8.17.0. It serves no purpose anymore.
 
 Pass a char pointer as parameter. Set the kerberos security level for FTP;
 this also enables kerberos awareness. This is a string that should match one
