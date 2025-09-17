@@ -1358,7 +1358,7 @@ typedef enum {
    * is a string, 'clear', 'safe', 'confidential' or 'private'. If the string
    * is set but does not match one of these, 'private' will be used.  */
   CURLOPTDEPRECATED(CURLOPT_KRBLEVEL, CURLOPTTYPE_STRINGPOINT, 63,
-                    "8.17.0", "removed"),
+                    8.17.0, "removed"),
 
   /* Set if we should verify the peer in ssl handshake, set 1 to verify. */
   CURLOPT(CURLOPT_SSL_VERIFYPEER, CURLOPTTYPE_LONG, 64),
