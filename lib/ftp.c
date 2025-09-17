@@ -53,7 +53,6 @@
 #include "fileinfo.h"
 #include "ftplistparser.h"
 #include "curl_range.h"
-#include "curl_krb5.h"
 #include "strcase.h"
 #include "vtls/vtls.h"
 #include "cfilters.h"
@@ -578,28 +577,6 @@ static CURLcode ftp_readresp(struct Curl_easy *data,
   int code;
   CURLcode result = Curl_pp_readresp(data, sockindex, pp, &code, size);
   DEBUGASSERT(ftpcodep);
-#ifdef HAVE_GSSAPI
-  {
-    struct connectdata *conn = data->conn;
-    char * const buf = curlx_dyn_ptr(&ftpc->pp.recvbuf);
-
-    /* handle the security-oriented responses 6xx ***/
-    switch(code) {
-    case 631:
-      code = Curl_sec_read_msg(data, conn, buf, PROT_SAFE);
-      break;
-    case 632:
-      code = Curl_sec_read_msg(data, conn, buf, PROT_PRIVATE);
-      break;
-    case 633:
-      code = Curl_sec_read_msg(data, conn, buf, PROT_CONFIDENTIAL);
-      break;
-    default:
-      /* normal ftp stuff we pass through! */
-      break;
-    }
-  }
-#endif
 
   /* store the latest code for later retrieval, except during shutdown */
   if(!ftpc->shutdown)
@@ -2811,25 +2788,6 @@ static CURLcode ftp_wait_resp(struct Curl_easy *data,
           ftpcode);
     return CURLE_WEIRD_SERVER_REPLY;
   }
-
-  /* We have received a 220 response fine, now we proceed. */
-#ifdef HAVE_GSSAPI
-  if(data->set.krb) {
-    /* If not anonymous login, try a secure login. Note that this
-       procedure is still BLOCKING. */
-
-    Curl_sec_request_prot(conn, "private");
-    /* We set private first as default, in case the line below fails to
-       set a valid level */
-    Curl_sec_request_prot(conn, data->set.str[STRING_KRB_LEVEL]);
-
-    if(Curl_sec_login(data, conn)) {
-      failf(data, "secure login failed");
-      return CURLE_WEIRD_SERVER_REPLY;
-    }
-    infof(data, "Authentication successful");
-  }
-#endif
 
   if(data->set.use_ssl && !conn->bits.ftp_use_control_ssl) {
     /* We do not have an SSL/TLS control connection yet, but FTPS is
