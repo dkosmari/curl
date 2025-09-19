@@ -206,14 +206,12 @@ curl_thread_t Curl_thread_create(CURL_THREAD_RETURN_T
   int res = __gthr_impl_create(&thread, (void*(*)(void*))func, arg);
   if (res)
     return curl_thread_t_null;
-  /* printf("[%s] created thread: %p\n", __FILE__, thread); */
   return thread;
 }
 
 void Curl_thread_destroy(curl_thread_t *thread)
 {
   if (*thread != curl_thread_t_null) {
-    /* printf("[%s] destryoing thread: %p\n", __FILE__, *thread); */
     __gthr_impl_detach(*thread);
     *thread = curl_thread_t_null;
   }
@@ -221,7 +219,6 @@ void Curl_thread_destroy(curl_thread_t *thread)
 
 int Curl_thread_join(curl_thread_t *thread)
 {
-  /* printf("[%s] joining thread: %p\n", __FILE__, *thread); */
   int result = __gthr_impl_join(*thread, NULL);
   *thread = curl_thread_t_null;
   return result;
@@ -229,7 +226,7 @@ int Curl_thread_join(curl_thread_t *thread)
 
 int Curl_thread_cancel(curl_thread_t *thread)
 {
-  if (thread != curl_thread_t_null)
+  if (*thread != curl_thread_t_null)
     OSCancelThread(*thread);
 }
 
