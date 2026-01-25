@@ -148,25 +148,22 @@ locdone:
 /*
  * Copies a filename part and returns an ALLOCATED data buffer.
  */
-static char *parse_filename(const char *ptr, size_t len)
+static char *parse_filename(const char *ptr, size_t len, char stop)
 {
   char *copy;
   char *p;
   char *q;
-  char stop = '\0';
 
   copy = memdup0(ptr, len);
   if(!copy)
     return NULL;
 
   p = copy;
-  if(*p == '\'' || *p == '"') {
+  if(stop && ((*p == '\'' || *p == '"'))) {
     /* store the starting quote */
     stop = *p;
     p++;
   }
-  else
-    stop = ';';
 
   /* scan for the end letter and stop there */
   q = strchr(p, stop);
@@ -294,7 +291,7 @@ static size_t content_disposition(const char *str, const char *end,
     const char *p = &str[9];
     char *filename;
     curlx_str_passblanks(&p);
-    filename = parse_filename(p, cb- (p - str));
+    filename = parse_filename(p, cb- (p - str), 0);
     if(filename) {
       if(outs->stream) {
         /* indication of problem, get out! */
@@ -342,7 +339,7 @@ static size_t content_disposition(const char *str, const char *end,
       p += 9;
 
       len = cb - (size_t)(p - str);
-      filename = parse_filename(p, len);
+      filename = parse_filename(p, len, ';');
       if(filename) {
         if(outs->stream) {
           /* indication of problem, get out! */
