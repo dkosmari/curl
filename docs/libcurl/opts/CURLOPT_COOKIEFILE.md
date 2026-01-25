@@ -55,6 +55,9 @@ If you use this option multiple times, you add more files to read cookies
 from. Setting this option to NULL disables the cookie engine and clears the
 list of files to read cookies from.
 
+The cookies are loaded from the specified file(s) when the transfer starts,
+not when this option is set.
+
 # SECURITY CONCERNS
 
 This document previously mentioned how specifying a non-existing file can also
@@ -75,13 +78,13 @@ int main(void)
 {
   CURL *curl = curl_easy_init();
   if(curl) {
-    CURLcode res;
+    CURLcode result;
     curl_easy_setopt(curl, CURLOPT_URL, "https://example.com/foo.bin");
 
     /* get cookies from an existing file */
     curl_easy_setopt(curl, CURLOPT_COOKIEFILE, "/tmp/cookies.txt");
 
-    res = curl_easy_perform(curl);
+    result = curl_easy_perform(curl);
 
     curl_easy_cleanup(curl);
   }

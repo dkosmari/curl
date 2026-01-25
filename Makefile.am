@@ -27,15 +27,16 @@ AUTOMAKE_OPTIONS = foreign
 ACLOCAL_AMFLAGS = -I m4
 
 CMAKE_DIST =                                    \
- CMake/cmake_uninstall.cmake.in                 \
- CMake/CMakeConfigurableFile.in                 \
- CMake/curl-config.cmake.in                     \
+ CMake/cmake_uninstall.in.cmake                 \
+ CMake/curl-config.in.cmake                     \
  CMake/CurlSymbolHiding.cmake                   \
  CMake/CurlTests.c                              \
  CMake/FindBrotli.cmake                         \
  CMake/FindCares.cmake                          \
+ CMake/FindGnuTLS.cmake                         \
  CMake/FindGSS.cmake                            \
  CMake/FindLDAP.cmake                           \
+ CMake/FindLibbacktrace.cmake                   \
  CMake/FindLibgsasl.cmake                       \
  CMake/FindLibidn2.cmake                        \
  CMake/FindLibpsl.cmake                         \
@@ -50,7 +51,6 @@ CMAKE_DIST =                                    \
  CMake/FindNettle.cmake                         \
  CMake/FindQuiche.cmake                         \
  CMake/FindRustls.cmake                         \
- CMake/FindWolfSSH.cmake                        \
  CMake/FindWolfSSL.cmake                        \
  CMake/FindZstd.cmake                           \
  CMake/Macros.cmake                             \
@@ -66,9 +66,6 @@ CMAKE_DIST =                                    \
 
 VC_DIST = projects/README.md projects/generate.bat
 
-WINBUILD_DIST = winbuild/README.md \
- winbuild/MakefileBuild.vc winbuild/Makefile.vc winbuild/makedebug.bat
-
 PLAN9_DIST = plan9/include/mkfile \
  plan9/include/mkfile             \
  plan9/mkfile.proto               \
@@ -80,7 +77,7 @@ PLAN9_DIST = plan9/include/mkfile \
  plan9/src/mkfile
 
 EXTRA_DIST = CHANGES.md COPYING RELEASE-NOTES Dockerfile .editorconfig \
- $(CMAKE_DIST) $(VC_DIST) $(WINBUILD_DIST) $(PLAN9_DIST)
+ $(CMAKE_DIST) $(VC_DIST) $(PLAN9_DIST)
 
 DISTCLEANFILES = buildinfo.txt
 
@@ -94,7 +91,7 @@ pkgconfig_DATA = libcurl.pc
 
 dist-hook:
 	rm -rf $(top_builddir)/tests/log
-	find $(distdir) -name "*.dist" -exec rm {} \;
+	find $(distdir) -name "*.dist" -exec rm -- {} \;
 	(distit=`find $(srcdir) -name "*.dist" | grep -v Makefile`; \
 	for file in $$distit; do \
 	  strip=`echo $$file | sed -e s/^$(srcdir)// -e s/\.dist//`; \
@@ -114,7 +111,7 @@ pytest: test
 pytest-ci: test
 
 test:
-	@echo "NOTICE: we can't run the tests when cross-compiling!"
+	@echo "NOTICE: we cannot run the tests when cross-compiling!"
 
 else
 

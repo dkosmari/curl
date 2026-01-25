@@ -49,8 +49,7 @@ Transport and OpenSSL.
 Tells libcurl to disable certificate revocation checks for those SSL backends
 where such behavior is present. This option is only supported for Schannel
 (the native Windows SSL library), with an exception in the case of Windows'
-Untrusted Publishers block list which it seems cannot be bypassed. (Added in
-7.44.0)
+Untrusted Publishers block list which it seems cannot be bypassed.
 
 ## CURLSSLOPT_NO_PARTIALCHAIN
 
@@ -105,13 +104,13 @@ int main(void)
 {
   CURL *curl = curl_easy_init();
   if(curl) {
-    CURLcode res;
+    CURLcode result;
     curl_easy_setopt(curl, CURLOPT_URL, "https://example.com/");
-    curl_easy_setopt(curl, CURLOPT_PROXY, "https://proxy");
+    curl_easy_setopt(curl, CURLOPT_PROXY, "https://proxy.example");
     /* weaken TLS only for use with silly proxies */
     curl_easy_setopt(curl, CURLOPT_PROXY_SSL_OPTIONS,
                      CURLSSLOPT_ALLOW_BEAST | CURLSSLOPT_NO_REVOKE);
-    res = curl_easy_perform(curl);
+    result = curl_easy_perform(curl);
     curl_easy_cleanup(curl);
   }
 }

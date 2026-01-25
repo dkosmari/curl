@@ -45,6 +45,8 @@ my %remove = (
     '#define HAVE_BROTLI 1' => 1,
     '#define HAVE_BROTLI_DECODE_H 1' => 1,
     '#define HAVE_DLFCN_H 1' => 1,
+    '#define HAVE_GSSAPI_GSSAPI_GENERIC_H 1' => 1,
+    '#define HAVE_GSSAPI_GSSAPI_H 1' => 1,
     '#define HAVE_GSSAPI_GSSAPI_KRB5_H 1' => 1,
     '#define HAVE_INTTYPES_H 1' => 1,
     '#define HAVE_LDAP_H 1' => 1,
@@ -56,7 +58,6 @@ my %remove = (
     '#define HAVE_LIBSSH' => 1,
     '#define HAVE_LIBSSH2 1' => 1,
     '#define HAVE_LIBSSL 1' => 1,
-    '#define HAVE_LIBWOLFSSH' => 1,
     '#define HAVE_LIBZSTD 1' => 1,
     '#define HAVE_NGHTTP2_NGHTTP2_H 1' => 1,
     '#define HAVE_NGHTTP3_NGHTTP3_H 1' => 1,
@@ -67,7 +68,6 @@ my %remove = (
     '#define HAVE_OPENSSL_PEM_H 1' => 1,
     '#define HAVE_OPENSSL_RSA_H 1' => 1,
     '#define HAVE_OPENSSL_SSL_H 1' => 1,
-    '#define HAVE_OPENSSL_X509_H 1' => 1,
     '#define HAVE_QUICHE_H 1' => 1,
     '#define HAVE_SSL_SET_QUIC_TLS_CBS 1' => 1,
     '#define HAVE_SSL_SET_QUIC_USE_LEGACY_CODEPOINT 1' => 1,
@@ -78,7 +78,6 @@ my %remove = (
     '#define HAVE_SYS_STAT_H 1' => 1,
     '#define HAVE_SYS_XATTR_H 1' => 1,
     '#define HAVE_UNICODE_UIDNA_H 1' => 1,
-    '#define HAVE_WOLFSSH_SSH_H 1' => 1,
     '#define HAVE_WOLFSSL_SET_QUIC_USE_LEGACY_CODEPOINT 1' => 1,
     '#define HAVE_ZSTD 1' => 1,
     '#define HAVE_ZSTD_H 1' => 1,
@@ -135,7 +134,6 @@ foreach my $v (keys %remove) {
         print "Ignored, never matched line: $v\n";
     }
 }
-
 
 # return the exit code from diff
 exit system("diff -u /tmp/autotools /tmp/cmake") >> 8;

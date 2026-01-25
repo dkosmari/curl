@@ -540,7 +540,7 @@ Client key password. See CURLOPT_KEYPASSWD(3)
 
 ## CURLOPT_KRBLEVEL
 
-Kerberos security level. See CURLOPT_KRBLEVEL(3)
+**OBSOLETE**. Kerberos security level. See CURLOPT_KRBLEVEL(3)
 
 ## CURLOPT_LOCALPORT
 
@@ -685,6 +685,10 @@ Port number to connect to. See CURLOPT_PORT(3)
 ## CURLOPT_POST
 
 Make an HTTP POST. See CURLOPT_POST(3)
+
+## CURLOPT_POSTFIELDS
+
+Send a POST with this data - does not copy it. See CURLOPT_POSTFIELDS(3)
 
 ## CURLOPT_POSTFIELDSIZE
 
@@ -1352,9 +1356,9 @@ int main(void)
 {
   CURL *curl = curl_easy_init();
   if(curl) {
-    CURLcode res;
+    CURLcode result;
     curl_easy_setopt(curl, CURLOPT_URL, "https://example.com");
-    res = curl_easy_perform(curl);
+    result = curl_easy_perform(curl);
     curl_easy_cleanup(curl);
   }
 }

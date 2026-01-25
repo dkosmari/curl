@@ -30,15 +30,18 @@ FIRST_C = first.c
 FIRST_H = first.h
 
 # Common files used by test programs
-UTILS_C = memptr.c getpart.c util.c
+UTILS_C = getpart.c util.c
 UTILS_H =
 
 CURLX_C = \
   ../../lib/curlx/base64.c \
-  ../../lib/curlx/inet_pton.c \
+  ../../lib/curlx/fopen.c \
   ../../lib/curlx/inet_ntop.c \
+  ../../lib/curlx/inet_pton.c \
   ../../lib/curlx/multibyte.c \
   ../../lib/curlx/nonblock.c \
+  ../../lib/curlx/strcopy.c \
+  ../../lib/curlx/strerr.c \
   ../../lib/curlx/strparse.c \
   ../../lib/curlx/timediff.c \
   ../../lib/curlx/timeval.c \
@@ -46,6 +49,9 @@ CURLX_C = \
   ../../lib/curlx/wait.c \
   ../../lib/curlx/warnless.c \
   ../../lib/curlx/winapi.c
+
+TOOLX_C = \
+  ../../src/toolx/tool_time.c
 
 # All test servers
 TESTS_C = \

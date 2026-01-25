@@ -23,7 +23,6 @@
  * SPDX-License-Identifier: curl
  *
  ***************************************************************************/
-
 #include "../curl_setup.h"
 
 #ifdef USE_OPENSSL
@@ -51,8 +50,7 @@
  * BoringSSL: supported since d28f59c27bac (committed 2015-11-19)
  * LibreSSL: not supported. 3.5.0+ has a stub function that does nothing.
  */
-#if (OPENSSL_VERSION_NUMBER >= 0x10101000L && \
-  !defined(LIBRESSL_VERSION_NUMBER)) || defined(HAVE_BORINGSSL_LIKE)
+#ifndef LIBRESSL_VERSION_NUMBER
 #define HAVE_KEYLOG_CALLBACK
 #endif
 
@@ -71,7 +69,6 @@ struct ossl_ctx {
   /* these ones requires specific SSL-types */
   SSL_CTX* ssl_ctx;
   SSL*     ssl;
-  X509*    server_cert;
   BIO_METHOD *bio_method;
   CURLcode io_result;       /* result of last BIO cfilter operation */
   /* blocked writes need to retry with same length, remember it */
@@ -82,6 +79,7 @@ struct ossl_ctx {
   bool keylog_done;
 #endif
   BIT(x509_store_setup);            /* x509 store has been set up */
+  BIT(store_is_empty);              /* no certs/paths/blobs in x509 store */
   BIT(reused_session);              /* session-ID was reused for this */
 };
 
@@ -122,7 +120,7 @@ extern const struct Curl_ssl Curl_ssl_openssl;
  */
 CURLcode Curl_ssl_setup_x509_store(struct Curl_cfilter *cf,
                                    struct Curl_easy *data,
-                                   SSL_CTX *ssl_ctx);
+                                   struct ossl_ctx *octx);
 
 CURLcode Curl_ossl_ctx_configure(struct Curl_cfilter *cf,
                                  struct Curl_easy *data,
@@ -151,8 +149,7 @@ CURLcode Curl_ossl_check_peer_cert(struct Curl_cfilter *cf,
                                    struct ssl_peer *peer);
 
 /* Report properties of a successful handshake */
-void Curl_ossl_report_handshake(struct Curl_easy *data,
-                                struct ossl_ctx *octx);
+void Curl_ossl_report_handshake(struct Curl_easy *data, struct ossl_ctx *octx);
 
 #endif /* USE_OPENSSL */
 #endif /* HEADER_CURL_SSLUSE_H */

@@ -34,13 +34,31 @@ case "${TARGET:-}" in
 esac
 
 if [ "${APPVEYOR_BUILD_WORKER_IMAGE}" = 'Visual Studio 2022' ]; then
-  openssl_root_win="C:/OpenSSL-v34${openssl_suffix}"
-else
-  openssl_root_win="C:/OpenSSL-v111${openssl_suffix}"
+  openssl_root_win="C:/OpenSSL-v35${openssl_suffix}"
+  openssl_root="$(cygpath "${openssl_root_win}")"
+elif [ "${APPVEYOR_BUILD_WORKER_IMAGE}" = 'Visual Studio 2019' ]; then
+  openssl_root_win="C:/OpenSSL-v30${openssl_suffix}"
+  openssl_root="$(cygpath "${openssl_root_win}")"
 fi
-openssl_root="$(cygpath "${openssl_root_win}")"
 
 if [ "${BUILD_SYSTEM}" = 'CMake' ]; then
+  # Install custom cmake version
+  if [ -n "${CMAKE_VERSION:-}" ]; then
+    cmake_ver=$(printf '%02d%02d' \
+      "$(echo "${CMAKE_VERSION}" | cut -f1 -d.)" \
+      "$(echo "${CMAKE_VERSION}" | cut -f2 -d.)")
+    if [ "${cmake_ver}" -ge '0320' ]; then
+      fn="cmake-${CMAKE_VERSION}-windows-x86_64"
+    else
+      fn="cmake-${CMAKE_VERSION}-win64-x64"
+    fi
+    curl --disable --fail --silent --show-error --connect-timeout 15 --max-time 60 --retry 3 --retry-connrefused \
+      --location "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/${fn}.zip" --output bin.zip
+    7z x -y bin.zip >/dev/null
+    rm -f bin.zip
+    PATH="$PWD/${fn}/bin:$PATH"
+  fi
+
   # Set env CHKPREFILL to the value '_chkprefill' to compare feature detection
   # results with and without the pre-fill feature. They have to match.
   for _chkprefill in '' ${CHKPREFILL:-}; do
@@ -74,7 +92,7 @@ if [ "${BUILD_SYSTEM}" = 'CMake' ]; then
       -DCURL_USE_OPENSSL="${OPENSSL}" \
       -DCURL_USE_LIBPSL=OFF \
       ${options} \
-      || { cat ${root}/_bld/CMakeFiles/CMake* 2>/dev/null; false; }
+      || { cat "${root}"/_bld/CMakeFiles/CMake* 2>/dev/null; false; }
     [ "${APPVEYOR_BUILD_WORKER_IMAGE}" = 'Visual Studio 2013' ] && cd ..
   done
   if [ -d _bld_chkprefill ] && ! diff -u _bld/lib/curl_config.h _bld_chkprefill/lib/curl_config.h; then
@@ -91,35 +109,14 @@ elif [ "${BUILD_SYSTEM}" = 'VisualStudioSolution' ]; then
   (
     cd projects
     ./generate.bat "${VC_VERSION}"
-    msbuild.exe -maxcpucount "-property:Configuration=${PRJ_CFG}" "Windows/${VC_VERSION}/curl-all.sln"
+    msbuild.exe -maxcpucount "-property:Configuration=${PRJ_CFG}" "-property:Platform=${PLAT}" "Windows/${VC_VERSION}/curl-all.sln"
   )
-  curl="build/Win32/${VC_VERSION}/${PRJ_CFG}/curld.exe"
-elif [ "${BUILD_SYSTEM}" = 'winbuild_vs2015' ]; then
-  (
-    cd winbuild
-    cat << EOF > _make.bat
-      call "C:/Program Files/Microsoft SDKs/Windows/v7.1/Bin/SetEnv.cmd" /x64
-      call "C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/vcvarsall.bat" x86_amd64
-      nmake -f Makefile.vc mode=dll VC=14 "SSL_PATH=${openssl_root_win}" WITH_SSL=dll MACHINE=x64 DEBUG=${DEBUG} ENABLE_UNICODE=${ENABLE_UNICODE} WINBUILD_ACKNOWLEDGE_DEPRECATED=yes
-EOF
-    ./_make.bat
-    rm _make.bat
-  )
-  curl="builds/libcurl-vc14-x64-${PATHPART}-dll-ssl-dll-ipv6-sspi/bin/curl.exe"
-elif [ "${BUILD_SYSTEM}" = 'winbuild_vs2017' ]; then
-  (
-    cd winbuild
-    cat << EOF > _make.bat
-      call "C:/Program Files (x86)/Microsoft Visual Studio/2017/Community/VC/Auxiliary/Build/vcvars64.bat"
-      nmake -f Makefile.vc mode=dll VC=14.10 "SSL_PATH=${openssl_root_win}" WITH_SSL=dll MACHINE=x64 DEBUG=${DEBUG} ENABLE_UNICODE=${ENABLE_UNICODE} WINBUILD_ACKNOWLEDGE_DEPRECATED=yes
-EOF
-    ./_make.bat
-    rm _make.bat
-  )
-  curl="builds/libcurl-vc14.10-x64-${PATHPART}-dll-ssl-dll-ipv6-sspi/bin/curl.exe"
+  [ "${PLAT}" = 'x64' ] && platdir='Win64' || platdir='Win32'
+  [[ "${PRJ_CFG}" = *'Debug'* ]] && binsuffix='d' || binsuffix=''
+  curl="build/${platdir}/${VC_VERSION}/${PRJ_CFG}/curl${binsuffix}.exe"
 fi
 
-find . \( -name '*.exe' -o -name '*.dll' -o -name '*.lib' -o -name '*.pdb' \) -exec file '{}' \;
+find . \( -name '*.exe' -o -name '*.dll' -o -name '*.lib' -o -name '*.pdb' \) -exec file -- '{}' \;
 if [ -z "${SKIP_RUN:-}" ]; then
   "${curl}" --disable --version
 else

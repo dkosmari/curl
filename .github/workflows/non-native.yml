@@ -17,7 +17,6 @@ name: 'non-native'
       - 'packages/**'
       - 'plan9/**'
       - 'projects/**'
-      - 'winbuild/**'
   pull_request:
     branches:
       - master
@@ -29,7 +28,6 @@ name: 'non-native'
       - 'packages/**'
       - 'plan9/**'
       - 'projects/**'
-      - 'winbuild/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
@@ -39,6 +37,7 @@ permissions: {}
 
 env:
   CURL_CI: github
+  CURL_TEST_MIN: 1750
 
 jobs:
   netbsd:
@@ -49,21 +48,21 @@ jobs:
       matrix:
         arch: ['x86_64']
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
       - name: 'cmake'
-        uses: cross-platform-actions/action@e8a7b572196ff79ded1979dc2bb9ee67d1ddb252 # v0.29.0
+        uses: cross-platform-actions/action@492b0c80085400348c599edace11141a4ee73524 # v0.32.0
         env:
           MATRIX_ARCH: '${{ matrix.arch }}'
         with:
-          environment_variables: MATRIX_ARCH
+          environment_variables: CURL_CI CURL_TEST_MIN MATRIX_ARCH
           operating_system: 'netbsd'
           version: '10.1'
           architecture: ${{ matrix.arch }}
           run: |
             # https://pkgsrc.se/
-            time sudo pkgin -y install cmake ninja-build pkg-config perl brotli heimdal openldap-client libssh2 libidn2 libpsl nghttp2 py311-impacket
+            time sudo pkgin -y install cmake ninja-build pkg-config perl brotli mit-krb5 openldap-client libssh2 libidn2 libpsl nghttp2 py311-impacket
             time cmake -B bld -G Ninja \
               -DCMAKE_INSTALL_PREFIX="$HOME"/curl-install \
               -DCMAKE_UNITY_BUILD=ON \
@@ -94,15 +93,15 @@ jobs:
       matrix:
         arch: ['x86_64']
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
       - name: 'cmake'
-        uses: cross-platform-actions/action@e8a7b572196ff79ded1979dc2bb9ee67d1ddb252 # v0.29.0
+        uses: cross-platform-actions/action@492b0c80085400348c599edace11141a4ee73524 # v0.32.0
         env:
           MATRIX_ARCH: '${{ matrix.arch }}'
         with:
-          environment_variables: MATRIX_ARCH
+          environment_variables: CURL_CI CURL_TEST_MIN MATRIX_ARCH
           operating_system: 'openbsd'
           version: '7.7'
           architecture: ${{ matrix.arch }}
@@ -134,29 +133,30 @@ jobs:
   freebsd:
     name: "FreeBSD, ${{ matrix.build == 'cmake' && 'CM' || 'AM' }} ${{ matrix.compiler }} openssl${{ matrix.desc }} ${{ matrix.arch }}"
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     strategy:
       matrix:
         include:
           - { build: 'autotools', arch: 'x86_64', compiler: 'clang' }
           - { build: 'cmake'    , arch: 'x86_64', compiler: 'clang', options: '-DCMAKE_UNITY_BUILD=OFF', desc: ' !unity !runtests !examples' }
-          - { build: 'autotools', arch: 'arm64', compiler: 'clang' }
-          - { build: 'cmake'    , arch: 'arm64', compiler: 'clang' }
+          - { build: 'autotools', arch: 'arm64' , compiler: 'clang', desc: ' !examples' }
+          - { build: 'cmake'    , arch: 'arm64' , compiler: 'clang' }
       fail-fast: false
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
       - name: '${{ matrix.build }}'
-        uses: cross-platform-actions/action@e8a7b572196ff79ded1979dc2bb9ee67d1ddb252 # v0.29.0
+        uses: cross-platform-actions/action@492b0c80085400348c599edace11141a4ee73524 # v0.32.0
         env:
           CC: '${{ matrix.compiler }}'
+          CURL_TEST_MIN: 1800
           MATRIX_ARCH: '${{ matrix.arch }}'
           MATRIX_BUILD: '${{ matrix.build }}'
           MATRIX_DESC: '${{ matrix.desc }}'
           MATRIX_OPTIONS: '${{ matrix.options }}'
         with:
-          environment_variables: CC MATRIX_ARCH MATRIX_BUILD MATRIX_DESC MATRIX_OPTIONS
+          environment_variables: CC CURL_CI CURL_TEST_MIN MATRIX_ARCH MATRIX_BUILD MATRIX_DESC MATRIX_OPTIONS
           operating_system: 'freebsd'
           version: '14.3'
           architecture: ${{ matrix.arch }}
@@ -166,10 +166,10 @@ jobs:
             # https://ports.freebsd.org/
             if [ "${MATRIX_BUILD}" = 'cmake' ]; then
               time sudo pkg install -y cmake-core ninja perl5 \
-                pkgconf brotli openldap26-client libidn2 libnghttp2 stunnel py311-impacket
+                pkgconf brotli krb5-devel openldap26-client libidn2 libnghttp2 stunnel py311-impacket
             else
               time sudo pkg install -y autoconf automake libtool \
-                pkgconf brotli openldap26-client libidn2 libnghttp2 stunnel py311-impacket
+                pkgconf brotli krb5-devel openldap26-client libidn2 libnghttp2 stunnel py311-impacket
               export MAKEFLAGS=-j3
             fi
 
@@ -190,11 +190,11 @@ jobs:
                 options='--disable-manual --disable-docs'  # Slow with autotools, skip on emulated CPU
               fi
               mkdir bld && cd bld
-              time ../configure --enable-unity --enable-debug --enable-warnings --enable-werror \
+              time ../configure --enable-unity --enable-debug --enable-warnings --enable-werror --disable-static \
                 --prefix="$HOME"/curl-install \
                 --with-openssl \
                 --with-brotli --enable-ldap --enable-ldaps --with-libidn2 --with-libssh2 --with-nghttp2 --with-gssapi \
-                --disable-dependency-tracking \
+                --disable-dependency-tracking --enable-option-checking=fatal \
                 ${options} \
                 ${MATRIX_OPTIONS} \
                 || { tail -n 1000 config.log; false; }
@@ -242,7 +242,7 @@ jobs:
   android:
     name: "Android ${{ matrix.platform }}, ${{ matrix.build == 'cmake' && 'CM' || 'AM' }} ${{ matrix.name }} arm64"
     runs-on: 'ubuntu-latest'
-    timeout-minutes: 25
+    timeout-minutes: 5
     env:
       MAKEFLAGS: -j 5
       MATRIX_BUILD: '${{ matrix.build }}'
@@ -263,7 +263,7 @@ jobs:
 
       fail-fast: false
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           persist-credentials: false
 
@@ -286,7 +286,7 @@ jobs:
               ${MATRIX_OPTIONS}
           else
             TOOLCHAIN="${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64"
-            mkdir bld && cd bld && ../configure --disable-dependency-tracking --enable-unity --enable-warnings --enable-werror \
+            mkdir bld && cd bld && ../configure --disable-dependency-tracking --enable-option-checking=fatal --enable-unity --enable-warnings --enable-werror --disable-shared \
               CC="$TOOLCHAIN/bin/aarch64-linux-android${MATRIX_PLATFORM}-clang" \
               AR="$TOOLCHAIN/bin/llvm-ar" \
               RANLIB="$TOOLCHAIN/bin/llvm-ranlib" \
@@ -312,7 +312,7 @@ jobs:
           fi
 
       - name: 'curl info'
-        run: find . -type f \( -name curl -o -name '*.so' -o -name '*.a' \) -exec file '{}' \;
+        run: find . -type f \( -name curl -o -name '*.so' -o -name '*.a' \) -exec file -- '{}' \;
 
       - name: 'build tests'
         run: |

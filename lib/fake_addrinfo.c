@@ -21,20 +21,13 @@
  * SPDX-License-Identifier: curl
  *
  ***************************************************************************/
-
 #include "curl_setup.h"
+
 #include "fake_addrinfo.h"
 
 #ifdef USE_FAKE_GETADDRINFO
 
-#include <string.h>
-#include <stdlib.h>
 #include <ares.h>
-
-/* The last 3 #include files should be in this order */
-#include "curl_printf.h"
-#include "curl_memory.h"
-#include "memdebug.h"
 
 void r_freeaddrinfo(struct addrinfo *cahead)
 {
@@ -43,7 +36,7 @@ void r_freeaddrinfo(struct addrinfo *cahead)
 
   for(ca = cahead; ca; ca = canext) {
     canext = ca->ai_next;
-    free(ca);
+    curlx_free(ca);
   }
 }
 
@@ -91,7 +84,7 @@ static struct addrinfo *mk_getaddrinfo(const struct ares_addrinfo *aihead)
     if((size_t)ai->ai_addrlen < ss_size)
       continue;
 
-    ca = malloc(sizeof(struct addrinfo) + ss_size + namelen);
+    ca = curlx_malloc(sizeof(struct addrinfo) + ss_size + namelen);
     if(!ca) {
       r_freeaddrinfo(cafirst);
       return NULL;
@@ -178,16 +171,15 @@ int r_getaddrinfo(const char *node,
     if(env) {
       rc = ares_set_servers_ports_csv(channel, env);
       if(rc) {
-        fprintf(stderr, "ares_set_servers_ports_csv failed: %d", rc);
+        curl_mfprintf(stderr, "ares_set_servers_ports_csv failed: %d", rc);
         /* Cleanup */
         ares_destroy(channel);
-        return EAI_MEMORY; /* we can't run */
+        return EAI_MEMORY; /* we cannot run */
       }
     }
   }
 
-  ares_getaddrinfo(channel, node, service, &ahints,
-                   async_addrinfo_cb, &ctx);
+  ares_getaddrinfo(channel, node, service, &ahints, async_addrinfo_cb, &ctx);
 
   /* Wait until no more requests are left to be processed */
   ares_queue_wait_empty(channel, -1);

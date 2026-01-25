@@ -66,7 +66,7 @@ class TestShutdown:
 
     # check with `tcpdump` that we do NOT see TCP RST when CURL_GRACEFUL_SHUTDOWN set
     @pytest.mark.skipif(condition=not Env.tcpdump(), reason="tcpdump not available")
-    @pytest.mark.parametrize("proto", ['http/1.1', 'h2'])
+    @pytest.mark.parametrize("proto", Env.http_h1_h2_protos())
     def test_19_02_check_shutdown(self, env: Env, httpd, proto):
         if not env.curl_is_debug():
             pytest.skip('only works for curl debug builds')
@@ -90,6 +90,8 @@ class TestShutdown:
     def test_19_03_shutdown_by_server(self, env: Env, httpd, proto):
         if not env.curl_is_debug():
             pytest.skip('only works for curl debug builds')
+        if not env.curl_is_verbose():
+            pytest.skip('only works for curl with verbose strings')
         count = 10
         curl = CurlClient(env=env, run_env={
             'CURL_GRACEFUL_SHUTDOWN': '2000',
@@ -109,6 +111,8 @@ class TestShutdown:
     def test_19_04_shutdown_by_curl(self, env: Env, httpd, proto):
         if not env.curl_is_debug():
             pytest.skip('only works for curl debug builds')
+        if not env.curl_is_verbose():
+            pytest.skip('only works for curl with verbose strings')
         count = 10
         docname = 'data.json'
         url = f'https://localhost:{env.https_port}/{docname}'
@@ -132,6 +136,8 @@ class TestShutdown:
     def test_19_05_event_shutdown_by_server(self, env: Env, httpd, proto):
         if not env.curl_is_debug():
             pytest.skip('only works for curl debug builds')
+        if not env.curl_is_verbose():
+            pytest.skip('only works for curl with verbose strings')
         count = 10
         run_env = os.environ.copy()
         # forbid connection reuse to trigger shutdowns after transfer
@@ -156,12 +162,12 @@ class TestShutdown:
         assert len(removes) == count, f'{removes}'
 
     # check graceful shutdown on multiplexed http
-    @pytest.mark.parametrize("proto", ['h2', 'h3'])
+    @pytest.mark.parametrize("proto", Env.http_mplx_protos())
     def test_19_06_check_shutdown(self, env: Env, httpd, nghttpx, proto):
-        if proto == 'h3' and not env.have_h3():
-            pytest.skip("h3 not supported")
         if not env.curl_is_debug():
             pytest.skip('only works for curl debug builds')
+        if not env.curl_is_verbose():
+            pytest.skip('only works for curl with verbose strings')
         curl = CurlClient(env=env, run_env={
             'CURL_GRACEFUL_SHUTDOWN': '2000',
             'CURL_DEBUG': 'all'

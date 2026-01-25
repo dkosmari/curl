@@ -29,8 +29,9 @@
 #ifdef USE_SCHANNEL
 
 #include "vtls.h"
+#include "../curl_sha256.h"
 
-#if defined(_MSC_VER) && (_MSC_VER <= 1600)
+#if defined(_MSC_VER) && (_MSC_VER < 1700)
 /* Workaround for warning:
    'type cast' : conversion from 'int' to 'LPCSTR' of greater size */
 #undef CERT_STORE_PROV_MEMORY
@@ -99,7 +100,6 @@ typedef struct _SCH_CREDENTIALS {
 
 struct Curl_schannel_cred {
   CredHandle cred_handle;
-  TimeStamp time_stamp;
   TCHAR *sni_hostname;
   HCERTSTORE client_cert_store;
   int refcount;
@@ -107,7 +107,6 @@ struct Curl_schannel_cred {
 
 struct Curl_schannel_ctxt {
   CtxtHandle ctxt_handle;
-  TimeStamp time_stamp;
 };
 
 struct schannel_ssl_backend_data {
@@ -159,10 +158,10 @@ struct num_ip_data {
 };
 
 HCERTSTORE Curl_schannel_get_cached_cert_store(struct Curl_cfilter *cf,
-                                               const struct Curl_easy *data);
+                                               struct Curl_easy *data);
 
 bool Curl_schannel_set_cached_cert_store(struct Curl_cfilter *cf,
-                                         const struct Curl_easy *data,
+                                         struct Curl_easy *data,
                                          HCERTSTORE cert_store);
 
 #endif /* USE_SCHANNEL */

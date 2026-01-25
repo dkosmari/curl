@@ -54,7 +54,7 @@ versions do not work.
 
 Build OpenSSL (version 3.5.0 or newer):
 
-     % git clone --quiet --depth=1 -b openssl-$OPENSSL_VERSION https://github.com/openssl/openssl
+     % git clone --depth 1 -b openssl-$OPENSSL_VERSION https://github.com/openssl/openssl
      % cd openssl
      % ./config --prefix=<somewhere1> --libdir=lib
      % make
@@ -93,8 +93,9 @@ Build curl:
 
 ## Build with quictls
 
-OpenSSL does not offer the required APIs for building a QUIC client. You need
-to use a TLS library that has such APIs and that works with *ngtcp2*.
+OpenSSL before version 3.5 does not offer the required APIs for building a
+QUIC client. You need to use a TLS library that has such APIs and that works
+with *ngtcp2*.
 
 Build quictls (any `+quic` tagged version works):
 
@@ -139,7 +140,7 @@ Build curl:
 
 Build GnuTLS:
 
-     % git clone --depth 1 https://gitlab.com/gnutls/gnutls.git
+     % git clone --depth 1 https://gitlab.com/gnutls/gnutls
      % cd gnutls
      % ./bootstrap
      % ./configure --prefix=<somewhere1>
@@ -181,7 +182,7 @@ Build curl:
 
 Build wolfSSL:
 
-     % git clone https://github.com/wolfSSL/wolfssl.git
+     % git clone https://github.com/wolfSSL/wolfssl
      % cd wolfssl
      % autoreconf -fi
      % ./configure --prefix=<somewhere1> --enable-quic --enable-session-ticket --enable-earlydata --enable-psk --enable-harden --enable-altcertchains
@@ -316,7 +317,7 @@ See this [list of public HTTP/3 servers](https://bagder.github.io/HTTP3-test/)
 ### HTTPS eyeballing
 
 With option `--http3` curl attempts earlier HTTP versions as well should the
-connect attempt via HTTP/3 not succeed "fast enough". This strategy is similar
+connect attempt via HTTP/3 fail "fast enough". This strategy is similar
 to IPv4/6 happy eyeballing where the alternate address family is used in
 parallel after a short delay.
 
@@ -385,7 +386,7 @@ above.
 
 Get, build and install nghttp2:
 
-     % git clone https://github.com/nghttp2/nghttp2.git
+     % git clone https://github.com/nghttp2/nghttp2
      % cd nghttp2
      % autoreconf -fi
      % PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/home/daniel/build-quictls/lib/pkgconfig:/home/daniel/build-nghttp3/lib/pkgconfig:/home/daniel/build-ngtcp2/lib/pkgconfig LDFLAGS=-L/home/daniel/build-quictls/lib CFLAGS=-I/home/daniel/build-quictls/include ./configure --enable-maintainer-mode --prefix=/home/daniel/build-nghttp2 --disable-shared --enable-app --enable-http3 --without-jemalloc --without-libxml2 --without-systemd

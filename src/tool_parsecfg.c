@@ -30,11 +30,10 @@
 #include "tool_msgs.h"
 #include "tool_parsecfg.h"
 #include "tool_util.h"
-#include "memdebug.h" /* keep this as LAST include */
 
 /* only acknowledge colon or equals as separators if the option was not
    specified with an initial dash! */
-#define ISSEP(x,dash) (!dash && (((x) == '=') || ((x) == ':')))
+#define ISSEP(x, dash) (!dash && (((x) == '=') || ((x) == ':')))
 
 /*
  * Copies the string from line to the param dynbuf, unquoting backslash-quoted
@@ -54,7 +53,7 @@ static int unslashquote(const char *line, struct dynbuf *param)
       /* default is to output the letter after the backslash */
       switch(out = *line) {
       case '\0':
-        continue; /* this'll break out of the loop */
+        continue; /* this breaks out of the loop */
       case 't':
         out = '\t';
         break;
@@ -78,14 +77,13 @@ static int unslashquote(const char *line, struct dynbuf *param)
   return 0; /* ok */
 }
 
-#define MAX_CONFIG_LINE_LENGTH (10*1024*1024)
-
 /* return 0 on everything-is-fine, and non-zero otherwise */
-int parseconfig(const char *filename)
+ParameterError parseconfig(const char *filename, int max_recursive,
+                           char **resolved)
 {
   FILE *file = NULL;
   bool usedarg = FALSE;
-  int rc = 0;
+  ParameterError err = PARAM_OK;
   struct OperationConfig *config = global->last;
   char *pathalloc = NULL;
 
@@ -93,17 +91,17 @@ int parseconfig(const char *filename)
     /* NULL means load .curlrc from homedir! */
     char *curlrc = findfile(".curlrc", CURLRC_DOTSCORE);
     if(curlrc) {
-      file = fopen(curlrc, FOPEN_READTEXT);
+      file = curlx_fopen(curlrc, FOPEN_READTEXT);
       if(!file) {
-        free(curlrc);
-        return 1;
+        curlx_free(curlrc);
+        return PARAM_READ_ERROR;
       }
       filename = pathalloc = curlrc;
     }
-#if defined(_WIN32) && !defined(UNDER_CE)
+#ifdef _WIN32
     else {
       char *fullp;
-      /* check for .curlrc then _curlrc in the dir of the executable */
+      /* check for .curlrc then _curlrc in the directory of the executable */
       file = tool_execpath(".curlrc", &fullp);
       if(!file)
         file = tool_execpath("_curlrc", &fullp);
@@ -115,7 +113,7 @@ int parseconfig(const char *filename)
   }
   else {
     if(strcmp(filename, "-"))
-      file = fopen(filename, FOPEN_READTEXT);
+      file = curlx_fopen(filename, FOPEN_READTEXT);
     else
       file = stdin;
   }
@@ -133,12 +131,12 @@ int parseconfig(const char *filename)
     curlx_dyn_init(&pbuf, MAX_CONFIG_LINE_LENGTH);
     DEBUGASSERT(filename);
 
-    while(!rc && my_get_line(file, &buf, &fileerror)) {
+    while(!err && my_get_line(file, &buf, &fileerror)) {
       ParameterError res;
       lineno++;
       line = curlx_dyn_ptr(&buf);
       if(!line) {
-        rc = 1; /* out of memory */
+        err = PARAM_NO_MEM; /* out of memory */
         break;
       }
 
@@ -156,7 +154,7 @@ int parseconfig(const char *filename)
         *line++ = '\0'; /* null-terminate, we have a local copy of the data */
 
 #ifdef DEBUG_CONFIG
-      fprintf(tool_stderr, "GOT: %s\n", option);
+      curl_mfprintf(tool_stderr, "GOT: %s\n", option);
 #endif
 
       /* pass spaces and separator(s) */
@@ -166,9 +164,11 @@ int parseconfig(const char *filename)
       /* the parameter starts here (unless quoted) */
       if(*line == '\"') {
         /* quoted parameter, do the quote dance */
-        rc = unslashquote(++line, &pbuf);
-        if(rc)
+        int rc = unslashquote(++line, &pbuf);
+        if(rc) {
+          err = PARAM_BAD_USE;
           break;
+        }
         param = curlx_dyn_len(&pbuf) ? curlx_dyn_ptr(&pbuf) : CURL_UNCONST("");
       }
       else {
@@ -204,9 +204,9 @@ int parseconfig(const char *filename)
       }
 
 #ifdef DEBUG_CONFIG
-      fprintf(tool_stderr, "PARAM: \"%s\"\n",(param ? param : "(null)"));
+      curl_mfprintf(tool_stderr, "PARAM: \"%s\"\n",(param ? param : "(null)"));
 #endif
-      res = getparameter(option, param, &usedarg, config);
+      res = getparameter(option, param, &usedarg, config, max_recursive);
       config = global->last;
 
       if(!res && param && *param && !usedarg)
@@ -240,27 +240,36 @@ int parseconfig(const char *filename)
            res != PARAM_VERSION_INFO_REQUESTED &&
            res != PARAM_ENGINES_REQUESTED &&
            res != PARAM_CA_EMBED_REQUESTED) {
-          const char *reason = param2text(res);
-          errorf("%s:%d: '%s' %s",
-                 filename, lineno, option, reason);
-          rc = (int)res;
+          /* only show error in the first level config call */
+          if(max_recursive == CONFIG_MAX_LEVELS) {
+            const char *reason = param2text(res);
+            errorf("%s:%d: '%s' %s", filename, lineno, option, reason);
+          }
+          err = res;
         }
       }
     }
     curlx_dyn_free(&buf);
     curlx_dyn_free(&pbuf);
     if(file != stdin)
-      fclose(file);
+      curlx_fclose(file);
     if(fileerror)
-      rc = 1;
+      err = PARAM_READ_ERROR;
   }
   else
-    rc = 1; /* could not open the file */
+    err = PARAM_READ_ERROR; /* could not open the file */
 
-  free(pathalloc);
-  return rc;
+  if((err == PARAM_READ_ERROR) && filename)
+    errorf("cannot read config from '%s'", filename);
+
+  if(!err && resolved) {
+    *resolved = curlx_strdup(filename);
+    if(!*resolved)
+      err = PARAM_NO_MEM;
+  }
+  curlx_free(pathalloc);
+  return err;
 }
-
 
 static bool get_line(FILE *input, struct dynbuf *buf, bool *error)
 {

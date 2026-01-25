@@ -36,7 +36,7 @@
 # Forward slashes are simpler processed in Perl, do not require extra escaping
 # for shell (unlike back slashes) and accepted by Windows native programs, so
 # all functions return paths with only forward slashes.
-# All returned paths don't contain any duplicated slashes, only single slashes
+# All returned paths do not contain any duplicated slashes, only single slashes
 # are used as directory separators on output.
 # On non-Windows platforms functions acts as transparent wrappers for similar
 # Perl's functions or return unmodified string (depending on functionality),
@@ -60,12 +60,12 @@ BEGIN {
         os_is_win
         exe_ext
         dirsepadd
+        shell_quote
         sys_native_abs_path
         sys_native_current_path
         build_sys_abs_path
     );
 }
-
 
 #######################################################################
 # Block for cached static variables
@@ -190,6 +190,25 @@ sub dirsepadd {
     my ($dir) = @_;
     $dir =~ s/\/$//;
     return $dir . '/';
+}
+
+#######################################################################
+# Quote an argument for passing safely to a Bourne shell
+# This does the same thing as String::ShellQuote but does not need a package.
+#
+sub shell_quote {
+    my ($s)=@_;
+    if($^O eq 'MSWin32') {
+        $s = '"' . $s . '"';
+    }
+    else {
+        if($s !~ m/^[-+=.,_\/:a-zA-Z0-9]+$/) {
+            # string contains a "dangerous" character--quote it
+            $s =~ s/'/'"'"'/g;
+            $s = "'" . $s . "'";
+        }
+    }
+    return $s;
 }
 
 1;    # End of module

@@ -27,6 +27,9 @@
 int main(int argc, char **argv)
 {
   (void)argc;
-  printf("libcurl test: |%s|%s|\n", argv[0], curl_version());
+  puts("libcurl test:");
+  puts(argv[0]);
+  puts(curl_version());
+  puts("---");
   return 0;
 }

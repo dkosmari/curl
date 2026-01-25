@@ -26,7 +26,7 @@
 use strict;
 use warnings;
 
-# we may get the dir root pointed out
+# we may get the directory root pointed out
 my $root=$ARGV[0] || ".";
 
 my %typecheck; # from the include file
@@ -45,7 +45,8 @@ sub gettypecheck {
 }
 
 sub getinclude {
-    open(my $f, "<", "$root/include/curl/curl.h")
+    my $f;
+    open($f, "<", "$root/include/curl/curl.h")
         || die "no curl.h";
     while(<$f>) {
         if($_ =~ /\((CURLOPT[^,]*), (CURLOPTTYPE_[^,]*)/) {
@@ -61,7 +62,7 @@ sub getinclude {
     $enum{"CURLOPT_CONV_TO_NETWORK_FUNCTION"}++;
     close($f);
 
-    open(my $f, "<", "$root/include/curl/multi.h")
+    open($f, "<", "$root/include/curl/multi.h")
         || die "no curl.h";
     while(<$f>) {
         if($_ =~ /\((CURLMOPT[^,]*), (CURLOPTTYPE_[^,]*)/) {

@@ -31,7 +31,7 @@ configure_file("config.in" "${CMAKE_CURRENT_BINARY_DIR}/config" @ONLY)
 
 add_custom_target(testdeps)
 if(BUILD_CURL_EXE)
-  add_dependencies(testdeps curlinfo)
+  add_dependencies(testdeps "curlinfo")
 endif()
 
 if(CURL_CLANG_TIDY)
@@ -57,7 +57,7 @@ function(curl_add_runtests _targetname _test_flags)
   # skipping them, MSBuild doing a re-evaluation, and actually rebuilding them.
   if(NOT _targetname STREQUAL "test-ci")
     if(BUILD_CURL_EXE)
-      list(APPEND _depends ${EXE_NAME})
+      list(APPEND _depends "${EXE_NAME}")
     endif()
     list(APPEND _depends "testdeps")
   endif()
@@ -86,7 +86,7 @@ function(curl_add_pytests _targetname _test_flags)
   set(_depends "")
   if(NOT _targetname STREQUAL "pytest-ci")
     if(BUILD_CURL_EXE)
-      list(APPEND _depends ${EXE_NAME})
+      list(APPEND _depends "${EXE_NAME}" "curlinfo")
     endif()
     list(APPEND _depends "libtests")
   endif()
@@ -120,7 +120,7 @@ configure_file(
   "${CMAKE_CURRENT_SOURCE_DIR}/configurehelp.pm.in"
   "${CMAKE_CURRENT_BINARY_DIR}/configurehelp.pm" @ONLY)
 
-curl_add_runtests(tests          "")  # Avoid 'test', which is a reserved target name in CMake
+curl_add_runtests(tests          "-a")  # Avoid 'test', which is a reserved target name in CMake
 curl_add_runtests(test-quiet     "-a -s")
 curl_add_runtests(test-am        "-a -am")
 curl_add_runtests(test-full      "-a -p -r")

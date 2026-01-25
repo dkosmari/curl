@@ -21,25 +21,16 @@
  * SPDX-License-Identifier: curl
  *
  ***************************************************************************/
-
 #include "curl_setup.h"
 
 #ifndef CURL_DISABLE_HTTP
 
 #include "urldata.h" /* it includes http_chunks.h */
-#include "curl_printf.h"
 #include "curl_trc.h"
 #include "sendf.h"   /* for the client write stuff */
 #include "curlx/dynbuf.h"
-#include "content_encoding.h"
-#include "http.h"
 #include "multiif.h"
 #include "curlx/strparse.h"
-#include "curlx/warnless.h"
-
-/* The last #include files should be: */
-#include "curl_memory.h"
-#include "memdebug.h"
 
 /*
  * Chunk format (simplified):
@@ -362,7 +353,6 @@ static CURLcode httpchunk_readwrite(struct Curl_easy *data,
     case CHUNK_FAILED:
       return CURLE_RECV_ERROR;
     }
-
   }
   return CURLE_OK;
 }
@@ -533,8 +523,7 @@ static CURLcode add_last_chunk(struct Curl_easy *data,
       continue;
     }
 
-    result = Curl_bufq_cwrite(&ctx->chunkbuf, tr->data,
-                              strlen(tr->data), &n);
+    result = Curl_bufq_cwrite(&ctx->chunkbuf, tr->data, strlen(tr->data), &n);
     if(!result)
       result = Curl_bufq_cwrite(&ctx->chunkbuf, STRCONST("\r\n"), &n);
     if(result)
@@ -584,7 +573,7 @@ static CURLcode add_chunk(struct Curl_easy *data,
     int hdlen;
     size_t n;
 
-    hdlen = msnprintf(hd, sizeof(hd), "%zx\r\n", nread);
+    hdlen = curl_msnprintf(hd, sizeof(hd), "%zx\r\n", nread);
     if(hdlen <= 0)
       return CURLE_READ_ERROR;
     /* On a soft-limited bufq, we do not need to check that all was written */

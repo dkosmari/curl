@@ -9,6 +9,7 @@ Protocol:
 See-also:
   - CURLOPT_FTP_USE_EPRT (3)
   - CURLOPT_FTP_USE_EPSV (3)
+  - CURLOPT_ACCEPTTIMEOUT_MS (3)
 Added-in: 7.1
 ---
 
@@ -79,11 +80,11 @@ int main(void)
 {
   CURL *curl = curl_easy_init();
   if(curl) {
-    CURLcode res;
+    CURLcode result;
     curl_easy_setopt(curl, CURLOPT_URL,
                      "ftp://example.com/old-server/file.txt");
     curl_easy_setopt(curl, CURLOPT_FTPPORT, "-");
-    res = curl_easy_perform(curl);
+    result = curl_easy_perform(curl);
     curl_easy_cleanup(curl);
   }
 }

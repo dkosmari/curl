@@ -26,8 +26,7 @@
 static int dnsd_wrotepidfile = 0;
 static int dnsd_wroteportfile = 0;
 
-static unsigned short get16bit(const unsigned char **pkt,
-                               size_t *size)
+static unsigned short get16bit(const unsigned char **pkt, size_t *size)
 {
   const unsigned char *p = *pkt;
   (*pkt) += 2;
@@ -60,8 +59,8 @@ static int qname(const unsigned char **pkt, size_t *size)
   return 0;
 }
 
-#define QTYPE_A 1
-#define QTYPE_AAAA 28
+#define QTYPE_A     1
+#define QTYPE_AAAA  28
 #define QTYPE_HTTPS 0x41
 
 static const char *type2string(unsigned short qtype)
@@ -83,7 +82,7 @@ static const char *type2string(unsigned short qtype)
  * Return query (qname + type + class), type and id.
  */
 static int store_incoming(const unsigned char *data, size_t size,
-                          unsigned char *qbuf, size_t *qlen,
+                          unsigned char *qbuf, size_t qbuflen, size_t *qlen,
                           unsigned short *qtype, unsigned short *idp)
 {
   FILE *server;
@@ -102,10 +101,12 @@ static int store_incoming(const unsigned char *data, size_t size,
   snprintf(dumpfile, sizeof(dumpfile), "%s/dnsd.input", logdir);
 
   /* Open request dump file. */
-  server = fopen(dumpfile, "ab");
+  server = curlx_fopen(dumpfile, "ab");
   if(!server) {
+    char errbuf[STRERROR_LEN];
     int error = errno;
-    logmsg("fopen() failed with error (%d) %s", error, strerror(error));
+    logmsg("fopen() failed with error (%d) %s",
+           error, curlx_strerror(error, errbuf, sizeof(errbuf)));
     logmsg("Error opening file '%s'", dumpfile);
     return -1;
   }
@@ -138,7 +139,7 @@ static int store_incoming(const unsigned char *data, size_t size,
   fprintf(server, "Z: %x\n", (id & 0x70) >> 4);
   fprintf(server, "RCODE: %x\n", (id & 0x0f));
 #endif
-  (void) get16bit(&data, &size);
+  (void)get16bit(&data, &size);
 
   data += 6; /* skip ANCOUNT, NSCOUNT and ARCOUNT */
   size -= 6;
@@ -151,12 +152,17 @@ static int store_incoming(const unsigned char *data, size_t size,
     qd = get16bit(&data, &size);
     fprintf(server, "QNAME %s QTYPE %s\n", name, type2string(qd));
     *qtype = qd;
-    logmsg("Question for '%s' type %x / %s", name, qd,
-           type2string(qd));
+    logmsg("Question for '%s' type %x / %s", name, qd, type2string(qd));
 
-    (void) get16bit(&data, &size);
+    (void)get16bit(&data, &size);
 
     *qlen = qsize - size; /* total size of the query */
+    if(*qlen > qbuflen) {
+      logmsg("dnsd: query too large: %lu > %lu",
+             (unsigned long)*qlen, (unsigned long)qbuflen);
+      curlx_fclose(server);
+      return -1;
+    }
     memcpy(qbuf, qptr, *qlen);
   }
   else
@@ -168,7 +174,7 @@ static int store_incoming(const unsigned char *data, size_t size,
   fprintf(server, "\n");
 #endif
 
-  fclose(server);
+  curlx_fclose(server);
 
   return 0;
 }
@@ -303,7 +309,7 @@ static int send_response(curl_socket_t sock,
   fprintf(stderr, "Not working\n");
   return -1;
 #else
-  rc = sendto(sock, (const void *)bytes, (SENDTO3) i, 0, addr, addrlen);
+  rc = sendto(sock, (const void *)bytes, (SENDTO3)i, 0, addr, addrlen);
   if(rc != (ssize_t)i) {
     fprintf(stderr, "failed sending %d bytes\n", (int)i);
   }
@@ -311,13 +317,12 @@ static int send_response(curl_socket_t sock,
   return 0;
 }
 
-
 static void read_instructions(void)
 {
   char file[256];
   FILE *f;
   snprintf(file, sizeof(file), "%s/" INSTRUCTIONS, logdir);
-  f = fopen(file, FOPEN_READTEXT);
+  f = curlx_fopen(file, FOPEN_READTEXT);
   if(f) {
     char buf[256];
     ancount_aaaa = ancount_a = 0;
@@ -367,7 +372,7 @@ static void read_instructions(void)
         }
       }
     }
-    fclose(f);
+    curlx_fclose(f);
   }
   else
     logmsg("Error opening file '%s'", file);
@@ -383,6 +388,7 @@ static int test_dnsd(int argc, char **argv)
   int flag;
   int rc;
   int error;
+  char errbuf[STRERROR_LEN];
   int result = 0;
 
   pidname = ".dnsd.pid";
@@ -390,6 +396,8 @@ static int test_dnsd(int argc, char **argv)
   serverlogslocked = 0;
 
   while(argc > arg) {
+    const char *opt;
+    curl_off_t num;
     if(!strcmp("--verbose", argv[arg])) {
       arg++;
       /* nothing yet */
@@ -401,7 +409,7 @@ static int test_dnsd(int argc, char **argv)
 #else
              ""
 #endif
-             );
+      );
       return 0;
     }
     else if(!strcmp("--pidfile", argv[arg])) {
@@ -441,9 +449,9 @@ static int test_dnsd(int argc, char **argv)
     else if(!strcmp("--port", argv[arg])) {
       arg++;
       if(argc > arg) {
-        char *endptr;
-        unsigned long ulnum = strtoul(argv[arg], &endptr, 10);
-        port = util_ultous(ulnum);
+        opt = argv[arg];
+        if(!curlx_str_number(&opt, &num, 0xffff))
+          port = (unsigned short)num;
         arg++;
       }
     }
@@ -464,12 +472,7 @@ static int test_dnsd(int argc, char **argv)
   }
 
   snprintf(loglockfile, sizeof(loglockfile), "%s/%s/dnsd-%s.lock",
-            logdir, SERVERLOGS_LOCKDIR, ipv_inuse);
-
-#ifdef _WIN32
-  if(win32_init())
-    return 2;
-#endif
+           logdir, SERVERLOGS_LOCKDIR, ipv_inuse);
 
 #ifdef USE_IPV6
   if(!use_ipv6)
@@ -482,17 +485,17 @@ static int test_dnsd(int argc, char **argv)
 
   if(CURL_SOCKET_BAD == sock) {
     error = SOCKERRNO;
-    logmsg("Error creating socket (%d) %s", error, sstrerror(error));
+    logmsg("Error creating socket (%d) %s",
+           error, curlx_strerror(error, errbuf, sizeof(errbuf)));
     result = 1;
     goto dnsd_cleanup;
   }
 
   flag = 1;
-  if(setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
-                (void *)&flag, sizeof(flag))) {
+  if(setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (void *)&flag, sizeof(flag))) {
     error = SOCKERRNO;
     logmsg("setsockopt(SO_REUSEADDR) failed with error (%d) %s",
-           error, sstrerror(error));
+           error, curlx_strerror(error, errbuf, sizeof(errbuf)));
     result = 1;
     goto dnsd_cleanup;
   }
@@ -517,8 +520,8 @@ static int test_dnsd(int argc, char **argv)
 #endif /* USE_IPV6 */
   if(rc) {
     error = SOCKERRNO;
-    logmsg("Error binding socket on port %hu (%d) %s", port, error,
-           sstrerror(error));
+    logmsg("Error binding socket on port %hu (%d) %s", port,
+           error, curlx_strerror(error, errbuf, sizeof(errbuf)));
     result = 1;
     goto dnsd_cleanup;
   }
@@ -540,7 +543,7 @@ static int test_dnsd(int argc, char **argv)
     if(getsockname(sock, &localaddr.sa, &la_size) < 0) {
       error = SOCKERRNO;
       logmsg("getsockname() failed with error (%d) %s",
-             error, sstrerror(error));
+             error, curlx_strerror(error, errbuf, sizeof(errbuf)));
       sclose(sock);
       goto dnsd_cleanup;
     }
@@ -614,7 +617,7 @@ static int test_dnsd(int argc, char **argv)
        per test case */
     read_instructions();
 
-    store_incoming(inbuffer, n, qbuf, &qlen, &qtype, &id);
+    store_incoming(inbuffer, n, qbuf, sizeof(qbuf), &qlen, &qtype, &id);
 
     set_advisor_read_lock(loglockfile);
     serverlogslocked = 1;
