@@ -175,10 +175,10 @@ static char *parse_filename(const char *ptr, size_t len, char stop)
   else {
     /* this is a Location: header, so we need to trim off any queries and
        fragments present */
-    q = strchr(p, '?'); /* trim of query, if present */
+    q = strchr(p, '?'); /* trim off query, if present */
     if(q)
       *q = '\0';
-    q = strchr(p, '#'); /* trim of fragment, if present */
+    q = strchr(p, '#'); /* trim off fragment, if present */
     if(q)
       *q = '\0';
   }
@@ -324,7 +324,6 @@ static size_t content_disposition(const char *str, const char *end,
       else
         outs->filename = filename;
       outs->alloc_filename = TRUE;
-      notef("Using %s for now", outs->filename);
     }
   }
   else if((cb > 20) && checkprefix("Content-disposition:", str)) {
