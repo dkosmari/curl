@@ -159,16 +159,29 @@ static char *parse_filename(const char *ptr, size_t len, char stop)
     return NULL;
 
   p = copy;
-  if(stop && ((*p == '\'' || *p == '"'))) {
-    /* store the starting quote */
-    stop = *p;
-    p++;
-  }
+  if(stop) {
+    /* a Content-Disposition: header */
+    if((*p == '\'' || *p == '"')) {
+      /* store the starting quote */
+      stop = *p;
+      p++;
+    }
 
-  /* scan for the end letter and stop there */
-  q = strchr(p, stop);
-  if(q)
-    *q = '\0';
+    /* scan for the end letter and stop there */
+    q = strchr(p, stop);
+    if(q)
+      *q = '\0';
+  }
+  else {
+    /* this is a Location: header, so we need to trim off any queries and
+       fragments present */
+    q = strchr(p, '?'); /* trim of query, if present */
+    if(q)
+      *q = '\0';
+    q = strchr(p, '#'); /* trim of fragment, if present */
+    if(q)
+      *q = '\0';
+  }
 
   /* if the filename contains a path, only use filename portion */
   q = strrchr(p, '/');
