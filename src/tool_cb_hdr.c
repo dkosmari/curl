@@ -291,7 +291,7 @@ static size_t content_disposition(const char *str, const char *end,
     const char *p = &str[9];
     char *filename;
     curlx_str_passblanks(&p);
-    filename = parse_filename(p, cb- (p - str), 0);
+    filename = parse_filename(p, cb - (p - str), 0);
     if(filename) {
       if(outs->stream) {
         /* indication of problem, get out! */
