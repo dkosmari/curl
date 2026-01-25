@@ -52,6 +52,7 @@
 #elif defined(USE_THREADS_WIIU)
 #  include <coreinit/thread.h>
 #  include <coreinit/mutex.h>
+#  define CURL_THREAD_RETURN_T   void *
 #  define CURL_STDCALL
 #  define curl_mutex_t           OSMutex
 #  define curl_thread_t          OSThread*
