@@ -103,8 +103,9 @@ if test "x$OPT_MBEDTLS" != "xno"; then
         fi
       fi
       dnl FIXME: Enable when mbedTLS was detected via pkg-config
-      if false; then
-        LIBCURL_PC_REQUIRES_PRIVATE="$LIBCURL_PC_REQUIRES_PRIVATE mbedtls mbedx509 mbedcrypto"
+      if true; then
+        LIBCURL_PC_REQUIRES="$LIBCURL_PC_REQUIRES mbedtls"
+        LIBCURL_PC_REQUIRES_PRIVATE="$LIBCURL_PC_REQUIRES_PRIVATE mbedtls"
       fi
 
       dnl Check DES support in mbedTLS <4.
