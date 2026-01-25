@@ -288,7 +288,36 @@ static size_t content_disposition(const char *str, const char *end,
   struct HdrCbData *hdrcbdata = &per->hdrcbdata;
   struct OutStruct *outs = &per->outs;
 
-  if((cb > 20) && checkprefix("Content-disposition:", str)) {
+  if((cb > 9) && checkprefix("Location:", str)) {
+    /* Get the name off the location header as a temporary measure in case
+       there is no Content-Disposition */
+    const char *p = &str[9];
+    char *filename;
+    curlx_str_passblanks(&p);
+    filename = parse_filename(p, cb- (p - str));
+    if(filename) {
+      if(outs->stream) {
+        /* indication of problem, get out! */
+        curlx_free(filename);
+        return CURL_WRITEFUNC_ERROR;
+      }
+      if(outs->alloc_filename)
+        curlx_free(outs->filename);
+
+      if(per->config->output_dir) {
+        outs->filename = curl_maprintf("%s/%s", per->config->output_dir,
+                                       filename);
+        curlx_free(filename);
+        if(!outs->filename)
+          return CURL_WRITEFUNC_ERROR;
+      }
+      else
+        outs->filename = filename;
+      outs->alloc_filename = TRUE;
+      notef("Using %s for now", outs->filename);
+    }
+  }
+  else if((cb > 20) && checkprefix("Content-disposition:", str)) {
     const char *p = str + 20;
     /* look for the 'filename=' parameter (encoded filenames (*=) are not
        supported) */
@@ -320,6 +349,8 @@ static size_t content_disposition(const char *str, const char *end,
           curlx_free(filename);
           return CURL_WRITEFUNC_ERROR;
         }
+        if(outs->alloc_filename)
+          curlx_free(outs->filename);
 
         if(per->config->output_dir) {
           outs->filename = curl_maprintf("%s/%s", per->config->output_dir,
