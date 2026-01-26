@@ -657,7 +657,7 @@
 #  define CURLRES_IPV4
 #endif
 
-#if defined(USE_THREADS_POSIX) || defined(USE_THREADS_WIN32) || defined(USE_THREADS_WIIU)
+#if defined(USE_THREADS_POSIX) || defined(USE_THREADS_WIN32)
 #  define CURLRES_ASYNCH
 #  define CURLRES_THREADED
 #elif defined(USE_ARES)

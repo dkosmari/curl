@@ -25,9 +25,6 @@
 
 #if defined(USE_THREADS_POSIX) && defined(HAVE_PTHREAD_H)
 #include <pthread.h>
-#elif defined(USE_THREADS_WIIU)
-#  include <coreinit/thread.h>
-#  include <coreinit/mutex.h>
 #endif
 
 #include "curl_threads.h"
@@ -132,43 +129,6 @@ int Curl_thread_join(curl_thread_t *hnd)
   Curl_thread_destroy(hnd);
 
   return ret;
-}
-
-#elif defined(USE_THREADS_WIIU)
-
-int __gthr_impl_create(curl_thread_t *__threadid, void *(*__func)(void *), void *__args);
-int __gthr_impl_detach(curl_thread_t __threadid);
-int __gthr_impl_join(curl_thread_t __threadid, void **__value_ptr);
-
-curl_thread_t Curl_thread_create(CURL_THREAD_RETURN_T
-                                 (CURL_STDCALL *func) (void *), void *arg)
-{
-  curl_thread_t thread;
-  int res = __gthr_impl_create(&thread, (void*(*)(void*))func, arg);
-  if (res)
-    return curl_thread_t_null;
-  return thread;
-}
-
-void Curl_thread_destroy(curl_thread_t *thread)
-{
-  if (*thread != curl_thread_t_null) {
-    __gthr_impl_detach(*thread);
-    *thread = curl_thread_t_null;
-  }
-}
-
-int Curl_thread_join(curl_thread_t *thread)
-{
-  int result = __gthr_impl_join(*thread, NULL);
-  *thread = curl_thread_t_null;
-  return result;
-}
-
-int Curl_thread_cancel(curl_thread_t *thread)
-{
-  if (*thread != curl_thread_t_null)
-    OSCancelThread(*thread);
 }
 
 #endif /* USE_THREADS_* */

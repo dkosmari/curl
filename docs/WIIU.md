@@ -1,25 +1,25 @@
 # Details about the Wii U port
 
-## Additions
+## Changes from upstream
 
-There's a Wii U threading implementation, by defining `USE_THREADS_WIIU`. It borrows the
-thread wrappers from `wut`. See `lib/curl_threads.{h,c}` for details.
+Currently a patch is needed for WUT 1.9.0 to support `fcntl(..., F_SETFD, FD_CLOEXEC)`
+
+The libcurl.pc script was tweaked to reduce the amount of duplicated flags.
 
 
 ## Build instructions:
 
 ### Compiling
 
-Only the automake build scripts were tested.
+Only the automake build system was tested.
 
-    export PORTLIBS_PREFIX=${DEVKITPRO}/portlibs/wiiu
+    source "${DEVKITPRO}/wiiuvars.sh"
 
     autoreconf -i
 
     ./configure \
         --disable-silent-rules \
         --host=powerpc-eabi \
-        --enable-wiiu \
         --prefix=${PORTLIBS_PREFIX} \
         --disable-shared \
         --disable-ipv6 \
@@ -32,8 +32,7 @@ Only the automake build scripts were tested.
         --enable-websockets \
         --enable-verbose \
         --disable-docs \
-        --enable-threaded-resolver \
-        CFLAGS="-Os -ffunction-sections -fdata-sections"
+        --enable-threaded-resolver
 
     make -C lib
 

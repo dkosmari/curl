@@ -49,21 +49,9 @@
 #  define Curl_mutex_acquire(m)  EnterCriticalSection(m)
 #  define Curl_mutex_release(m)  LeaveCriticalSection(m)
 #  define Curl_mutex_destroy(m)  DeleteCriticalSection(m)
-#elif defined(USE_THREADS_WIIU)
-#  include <coreinit/thread.h>
-#  include <coreinit/mutex.h>
-#  define CURL_THREAD_RETURN_T   void *
-#  define CURL_STDCALL
-#  define curl_mutex_t           OSMutex
-#  define curl_thread_t          OSThread*
-#  define curl_thread_t_null     (OSThread *)NULL
-#  define Curl_mutex_init(m)     OSInitMutex(m)
-#  define Curl_mutex_acquire(m)  OSLockMutex(m)
-#  define Curl_mutex_release(m)  OSUnlockMutex(m)
-#  define Curl_mutex_destroy(m)  Curl_nop_stmt
 #endif
 
-#if defined(USE_THREADS_POSIX) || defined(USE_THREADS_WIN32) || defined(USE_THREADS_WIIU)
+#if defined(USE_THREADS_POSIX) || defined(USE_THREADS_WIN32)
 
 curl_thread_t Curl_thread_create(CURL_THREAD_RETURN_T
                                  (CURL_STDCALL *func) (void *), void *arg);
@@ -72,6 +60,6 @@ void Curl_thread_destroy(curl_thread_t *hnd);
 
 int Curl_thread_join(curl_thread_t *hnd);
 
-#endif /* USE_THREADS_POSIX || USE_THREADS_WIN32 || defined(USE_THREADS_WIIU) */
+#endif /* USE_THREADS_POSIX || USE_THREADS_WIN32 */
 
 #endif /* HEADER_CURL_THREADS_H */

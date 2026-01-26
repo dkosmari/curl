@@ -26,7 +26,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.59)
 
 dnl We do not know the version number "statically" so we use a dash here
-AC_INIT([curl], [8.18.0], [a suitable curl mailing list: https://curl.se/mail/])
+AC_INIT([curl], [-], [a suitable curl mailing list: https://curl.se/mail/])
 
 XC_OVR_ZZ50
 CURL_OVERRIDE_AUTOCONF
@@ -58,8 +58,6 @@ CURL_CHECK_OPTION_ECH
 CURL_CHECK_OPTION_SSLS_EXPORT
 
 XC_CHECK_PATH_SEPARATOR
-
-DEVKITPRO_WUT_OPT_INIT
 
 #
 # save the configure arguments
@@ -582,14 +580,6 @@ if test "$curl_cv_native_windows" = "yes"; then
     *-DWINSTORECOMPAT*) curl_cv_winuwp='yes';;
   esac
 fi
-
-AS_VAR_IF([enable_wiiu], [yes],
-  [
-    AC_MSG_NOTICE([building Wii U binary])
-    DEVKITPRO_PPC_SETUP
-    DEVKITPRO_WUT_SETUP
-  ])
-# AM_CONDITIONAL([ENABLE_WIIU], [test x$enable_wiiu = xyes])
 
 CURL_SET_COMPILER_BASIC_OPTS
 CURL_SET_COMPILER_DEBUG_OPTS
@@ -4340,15 +4330,8 @@ if test "$want_threaded_resolver" = "yes" && test "$curl_cv_native_windows" = "y
   curl_res_msg="Win32 threaded"
 fi
 
-dnl Wii U threaded resolver check
-if test "$want_threaded_resolver" = "yes" && test "$enable_wiiu" = "yes"; then
-  USE_THREADS_WIIU=1
-  AC_DEFINE([USE_THREADS_WIIU], [1], [if you want Wii U threaded DNS lookup])
-  curl_res_msg="Wii U threaded"
-fi
-
 dnl detect pthreads
-if test "$want_threaded_resolver" = "yes" && test "$USE_THREADS_WIN32" != "1" && test "$USE_THREADS_WIIU" != "1"; then
+if test "$want_threaded_resolver" = "yes" && test "$USE_THREADS_WIN32" != "1"; then
   AC_CHECK_HEADER(pthread.h,
     [ AC_DEFINE(HAVE_PTHREAD_H, 1, [if you have <pthread.h>])
       save_CFLAGS="$CFLAGS"
@@ -4408,7 +4391,7 @@ if test "$want_threaded_resolver" = "yes" && test "$USE_THREADS_WIN32" != "1" &&
 fi
 
 dnl Did we find a threading option?
-if test "$want_threaded_resolver" != "no" -a "x$USE_THREADS_POSIX" != "x1" -a "x$USE_THREADS_WIN32" != "x1" -a "x$USE_THREADS_WIIU" != "x1"; then
+if test "$want_threaded_resolver" != "no" && test "$USE_THREADS_POSIX" != "1" && test "$USE_THREADS_WIN32" != "1"; then
   AC_MSG_ERROR([Threaded resolver enabled but no thread library found])
 fi
 
